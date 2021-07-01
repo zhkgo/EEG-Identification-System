@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>脑机协同视频检测</title>
-    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="./js/vue.js"></script>
     <!-- 引入样式 -->
     <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
 <!-- 引入组件库 -->
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
-    <link  rel="stylesheet" href="https://unpkg.com/animate.css@3.5.2/animate.min.css"/>
+    <link  rel="stylesheet" href="./css/animate.min.css"/>
 </head>
 <body>
     <div id="app">
@@ -35,7 +35,7 @@
                     <el-button @click="recommend()" type="primary" round>脑电触发</el-button>
            </el-row>
            <el-row>
-            <video id="videoplayed" src="videos/DSC_0026.MOV"   width="100%" @keyUp="speedChange" controls="controls">
+            <video id="videoplayed" src="videos/202107011713.mp4"   width="100%" @keyUp="speedChange" controls="controls">
                 your browser does not support the video tag
             </video>
         </el-row>
@@ -52,27 +52,27 @@ var app=new Vue({
         items: [
       { 
         id: "r1",
-        src: 'videos/DSC_0028.MOV',
+        src: 'videos/2021070114.mp4',
         currentTime: 10, },
       { id: "r2",
-        src: 'videos/DSC_0027.MOV',
+        src: 'videos/202106010931.mp4',
         currentTime: 5.5,
     },
     { id: "r3",
-        src: 'videos/DSC_0050.MOV',
+        src: 'videos/202106010933.mp4',
         currentTime: 2.5,
     },
     { id: "r4",
-        src: 'videos/DSC_0027.MOV',
+        src: 'videos/202106010934.mp4',
         currentTime: 1.5,
     },{ id: "r5",
-        src: 'videos/DSC_0051.MOV',
+        src: 'videos/202107011423.mp4',
         currentTime: 139,
     },
     ],
     speedId: 3,
     speedList:[
-           0.25,0.5,0.75,1,2,4,6,8,10
+           0.25,0.5,0.75,1,2,4,6,8,10,16
     ]
     },
     methods:{
