@@ -10,7 +10,7 @@ from api.reid import ReIDTCP
 import configparser
 from bcifilter import BciFilter
 from datatable import VideoDeepLink,Linker
-from flask import Flask
+from flask import Flask,request
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 from threading import Lock
@@ -102,6 +102,9 @@ def reIDgo():
         return fail(str(e))
     return success()
 
+@app.route("/api/getdata")
+def getdata():
+    return success()
 
 '''准备脑电接口'''
 def bciReady(filename='config.ini'):

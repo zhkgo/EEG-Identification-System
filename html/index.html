@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>脑机协同视频检测-主页</title>
+    <script src="./js/vue.js"></script>
+    <script src="./js/axios.min.js"></script>
+
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="./pkgs/element/lib/theme-chalk/index.css">
+<!-- 引入组件库 -->
+    <script src="./pkgs/element/lib/index.js"></script>
+    <link  rel="stylesheet" href="./css/animate.min.css"/>
+</head>
+<body>
+    <div id="app">
+    <el-row>
+        <el-col :span="18"><div style="margin-bottom: 50px;"><img src="images/BCI_title.jpg" width="800px"/></div></el-col>
+    </el-row>
+    <el-row>
+        <el-col :span="4"><div style="width:100%;height:20px;"></div></el-col>
+        <el-col :span="19">
+                <el-button @click="connectToBCI()" type="primary" round>接入脑电</el-button>
+                <el-button @click="connectToREID()" type="primary" round>接入计算机视觉</el-button>
+                <el-button @click="connectToEye()" type="primary" round>接入眼动仪</el-button>
+        </el-col>
+    </el-row>
+</div>
+</body>
+
+<script>
+
+var app=new Vue({
+    el: "#app",
+    data:{
+        baseurl: "http://127.0.0.1",
+        items: [
+      { 
+        id: "r1",
+        src: 'videos/2021070114.mp4',
+        currentTime: 10, },
+      { id: "r2",
+        src: 'videos/202106010931.mp4',
+        currentTime: 5.5,
+    },
+    { id: "r3",
+        src: 'videos/202106010933.mp4',
+        currentTime: 2.5,
+    },
+    { id: "r4",
+        src: 'videos/202106010934.mp4',
+        currentTime: 1.5,
+    },{ id: "r5",
+        src: 'videos/202107011423.mp4',
+        currentTime: 139,
+    },
+    ],
+    speedId: 3,
+    speedList:[
+           0.25,0.5,0.75,1,2,4,6,8,10,16
+    ]
+    },
+    methods:{
+        toLoading(message){
+            return this.$loading({
+                lock: false,
+                text: message,
+                fullscreen: 'false',
+                spinner: 'el-icon-loading',
+                background: 'rgba(0, 0, 0, 0.5)'
+            })
+        },
+        connectToBCI(){
+            let loading;
+            loading = this.toLoading("正在接入脑电信号模块");
+            let aurl=this.baseurl+"/api/bcigo";
+            axios.get(aurl).then(function(response){
+                data=response.data
+                if (data.code==1)
+                    app.$message.error(data.data);
+                else
+                    app.$message.success("脑电连接成功");
+                loading.close();
+            })
+            .catch(function(error){
+                app.$message.error(error);
+                loading.close();
+            });
+        },
+        connectToREID(){
+            let loading;
+            loading = this.toLoading("正在接入计算机视觉模块");
+            let aurl= this.baseurl + "/api/reIdgo";
+            axios.get(aurl).then(function(response){
+                data=response.data
+                if (data.code==1)
+                    app.$message.error(data.data);
+                else
+                    app.$message.success("视觉模块连接成功");
+                loading.close();
+            })
+            .catch(function(error){
+                app.$message.error(error);
+                loading.close();
+            });
+        },
+        connectToEye(){
+            let loading;
+            loading = this.toLoading("正在接入眼动仪模块");
+            let aurl= this.baseurl + "/api/eyeGo";
+            axios.get(aurl).then(function(response){
+                loading.close();
+                data=response.data
+                if (data.code==1)
+                    app.$message.error(data.data);
+                else
+                    app.$message.success("眼动仪连接成功");
+            }).catch(function(error){
+                loading.close();
+                app.$message.error(error);
+            });
+        },
+    }
+});
+
+
+</script>
+
+</html>
