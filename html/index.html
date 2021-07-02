@@ -118,8 +118,8 @@ var app=new Vue({
                 else
                     app.$message.success("眼动仪连接成功");
             }).catch(function(error){
+                app.$message.error(String(error));
                 loading.close();
-                app.$message.error(error);
             });
         },
     }
