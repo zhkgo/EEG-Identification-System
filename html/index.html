@@ -9,8 +9,14 @@
     <script src="./js/axios.min.js"></script>
     <script type="text/javascript" src="./js/echarts.js"></script>
     <script type="text/javascript" src="./js/imageList.js"></script>
+    <script type="text/javascript" src="./js/jquery.min.js"></script>
+    <script type="text/javascript" src="./js/jquery.classycountdown.js"></script>
+    <script type="text/javascript" src="./js/jquery.throttle.js"></script>
+    <script type="text/javascript" src="./js/jquery.knob.js"></script>
+
     <!-- 引入样式 -->
     <link rel="stylesheet" href="./pkgs/element/lib/theme-chalk/index.css">
+    <link rel="stylesheet" type="text/css" href="css/jquery.classycountdown.css" />
 <!-- 引入组件库 -->
     <script src="./pkgs/element/lib/index.js"></script>
     <link  rel="stylesheet" href="./css/animate.min.css"/>
@@ -40,7 +46,19 @@
     </el-row>
 
     <el-row><div id="bcicontainer" style="height: 600px"></div></el-row>
-    <el-row id="rsvpblock"><el-image :src="showimg"></el-image></el-row>
+    <el-row id="rsvpblock" style="margin-top:20px;margin-left: 50px;">
+        <el-col style="text-align:center" :span="3">
+            <h2>请注意以下目标</h2>
+            <el-card class="box-card">
+                <el-image id="limg" :src="timg" style="width: 200px;height: 400px;"></el-image>
+            </el-card>
+        </el-col>
+        <el-col style="text-align:center" :span="17">
+            <h2 style="margin-bottom: 20px;">刺激呈现区</h2>
+            <div  id="countdown-container" ></div>
+            <el-image id="rimg" :src="showimg" style="width: 200px;height: 400px;"></el-image>
+        </el-col>
+    </el-row>
 </div>
 </body>
 
@@ -56,6 +74,12 @@ var app=new Vue({
         imageList:blockimages,
         timgs:timgs,
         showimg:blockimages[0][0],
+        timg:timgs[0],
+        present:200,
+        trials:200,
+        sessions:5,
+        cursession:0,
+        curtrial:0,
     },
     methods:{
         toLoading(message){
@@ -105,6 +129,35 @@ var app=new Vue({
                 app.$message.error(String(error));
                 loading.close();
             });
+        },
+        shiftTrial(){
+            if(this.curtrial==this.trials){
+                clearInterval(this.trialInterval);
+                this.curtrial=0;
+                this.cursession++;
+                if(this.cursession<this.sessions){
+                    this.timg=this.timgs[this.cursession];
+                    console.log("修正前"+(Date.now()-this.totStart));
+                    console.log(1000-(Date.now()-this.totStart-this.present*this.trials*this.cursession-(this.cursession-1)*10000))
+                    setTimeout("app.countdown()",1000-(Date.now()-this.totStart-this.present*this.trials*this.cursession-(this.cursession-1)*10000));
+                }
+                return;
+            }
+            this.showimg=this.imageList[this.cursession][this.curtrial];
+            var eps=Date.now()-this.present*this.curtrial-this.firstshow;
+            this.curtrial++;
+            // this.lastshow=Date.now();
+            if(eps>20){
+                setTimeout("app.shiftTrial()", this.present-eps);
+            }else{
+                setTimeout("app.shiftTrial()", this.present);
+            }
+        },
+        doRSVP(){
+            this.timg=this.timgs[this.cursession];
+            this.firstshow=Date.now();
+            this.shiftTrial();
+            // this.clearInterval=setInterval(app.shiftTrial,this.present);
         },
         connectToBCI(){
             let loading;
@@ -216,9 +269,41 @@ var app=new Vue({
                 app.$message.error(String(error));
             });
         },
+        countdown(){
+            document.getElementById("rsvpblock").hidden=false;
+            document.getElementById("rimg").hidden=true;
+            $('#countdown-container').ClassyCountdown({
+                theme: "black-wide", // theme
+                end: '10',//实际是9秒剩下一秒用于修正误差
+				now: '0',
+				labels: true,
+				style: {
+					element: "",
+					textResponsive: .5,
+					seconds: {
+						gauge: {
+							thickness: .02,
+							bgColor: "rgba(0,0,0,0.1)",
+							fgColor: "#f39c12"
+						},
+						textCSS: 'font-family:\'Open Sans\'; font-size:25px; font-weight:300; color:#000000;' //原#34495e
+					}
+				},
+				onEndCallback: function() {
+                    console.log("修正后"+(Date.now()-app.totStart));
+                    if (app.cursession==0)
+                        app.totStart=Date.now()
+                    var obj=$('#countdown-container').children()
+                    for(var i=obj.length-1; i>=0 ; i--) obj[i].remove();
+                    document.getElementById("rimg").hidden=false;
+                    app.doRSVP();
+				}
+            })
+            
+        },
         pretrain(){
             document.getElementById("bcicontainer").hidden=true;
-            document.getElementById("rsvpblock").hidden=false;
+            this.countdown();
         },
         initEcharts(){
             let dom = document.getElementById("bcicontainer");
