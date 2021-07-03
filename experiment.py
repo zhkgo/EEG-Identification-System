@@ -24,8 +24,8 @@ class Experiment:
         self.windows=1000
 
         #均值标准差用于修正波形显示
-        self.means=None
-        self.sigmas=None
+        self.means=[]
+        self.sigmas=[]
 
         self.fitSessions=0
         self.startTimes=[] #实验开始时间 对于不同TCP连接 开始的点可能不同 单位ms
@@ -42,9 +42,9 @@ class Experiment:
         self.trainData=[]
         self.labels=[]
         # self.end=0
-    def finish(self):
+    def finish(self,savefile=True):
         self.done=True
-        self.stop_tcp()
+        self.stop_tcp(savefile=savefile)
     def start_tcp(self):
         assert len(self.tcps)>0,"请先初始化设置"
         self.tcpThread=[]
@@ -57,14 +57,16 @@ class Experiment:
             tcp.saveData(startTime)
             print(tcp.name,end=':')
             print("TCP线程数据已保存")
-    def stop_tcp(self):
+    def stop_tcp(self,savefile=True):
         for tcp,thred,startTime in zip(self.tcps,self.tcpThread,self.startTimes):
-            tcp.close()
-            tcp.saveData(startTime)
+            tcp.close(savefile=savefile)
+            if savefile:
+                tcp.saveData(startTime)
+                time.sleep(1)
             thred.join()
             print(tcp.name,end=':')
-            print("TCP线程已成功关闭")
-    def setParameters(self,sessions:int,fitSessions:int,trials:int,duration:int,interval:int,tmin:int,tmax:int,device:int):
+            print("BCI TCP线程已成功关闭")
+    def setParameters(self,sessions:int,fitSessions:int,trials:int,duration:int,interval:int,tmin:int,tmax:int,device:int,skipinterval=0):
         self.sessions=sessions
         self.trials=trials
         self.duration=duration
@@ -72,6 +74,7 @@ class Experiment:
         self.tmin=tmin
         self.tmax=tmax
         self.fitSessions=fitSessions
+        self.skipinterval=skipinterval
         cur=0
         
         for i in range(self.fitSessions):
@@ -84,7 +87,8 @@ class Experiment:
             for j in range(self.trials):
                 self.events.append(cur)
                 cur+=self.duration
-            cur+=self.interval
+            if self.skipinterval==0:
+                cur+=self.interval
         self.device=device
         assert device<2,"设备编号应当小于2"
         self.device_channels=self.CHANNELS[self.device]
@@ -101,29 +105,38 @@ class Experiment:
         self.filter=sfilter
     def set_channel(self,ch_names):
         self.channels=ch_names
-        idxs=[]
+        self.idxs=[]
         for item in ch_names:
-            idxs.append(self.device_channels.index(item))
-        return idxs
+            self.idxs.append(self.device_channels.index(item))
+        return self.idxs
     #获取指定位置的数据 如果传入-1 或者过大的时间值，则返回最新的，
     #若存在滤波器，会在数据返回之前进行滤波
     #windows为长度 startpos为相对起点
     # 返回滤波后数据和数据截止时间点
     #数据格式为 channels*times
     # 如果tcpid=-1 则返回全部按通道叠加后的数据，否则返回对应通道的数据
-    def getData(self,startpos:int,windows=1000,tcpid=0,median=False,normalize=False):
+    # 若zerobegin 则以0为基准，而不是实验开始时间
+    def getData(self,startpos:int,windows=1000,tcpid=0,median=False,zerobegin=False):
         assert len(self.tcps)>0,"请先设置TCP"
         if tcpid!=-1:
-            data,rend=self.tcps[tcpid].get_batch(self.startTimes[tcpid]+startpos if startpos> -1 else -1, maxlength=windows)
+            data,rend=None,None
+            if zerobegin:
+                data,rend=self.tcps[tcpid].get_batch(startpos,maxlength=windows)
+            else:
+                data,rend=self.tcps[tcpid].get_batch(self.startTimes[tcpid]+startpos if startpos> -1 else -1, maxlength=windows)
+                rend-=self.startTimes[tcpid]
             if self.filter:
                 data = self.filter.deal(data)
-            rend-=self.startTimes[tcpid]
             return data,int(rend)
         totdata = []
         totrend = 100000000
         minl=100000
         for tcp,startTime in zip(self.tcps,self.startTimes):
-            data,rend= tcp.get_batch(startTime+startpos if startpos> -1 else -1, maxlength=windows)
+            data,rend=None,None
+            if zerobegin:
+                data,rend= tcp.get_batch(startpos,maxlength=windows)
+            else:
+                data,rend= tcp.get_batch(startTime+startpos if startpos> -1 else -1, maxlength=windows)
             if self.filter:
                 data = self.filter.deal(data)
             totdata.append(data)
@@ -139,12 +152,6 @@ class Experiment:
             if median:
                 totdata[i]=np.median(totdata[i],axis=0,keepdims=True)
         totdata = np.concatenate(totdata,axis=0)
-        if normalize:
-            if self.means is None:
-                self.means=np.mean(totdata,axis=1,keepdims=True)
-            if self.sigmas is None:
-                self.sigmas=np.std(totdata,axis=1,keepdims=True)
-            totdata=(totdata-self.means)/self.sigmas
         print("Experimrnt return rend:", totrend)
         return totdata,int(totrend)
 
@@ -223,10 +230,28 @@ class Experiment:
         assert self.classfier !=None, "分类器不能为空"
         self.startTimes=[]
         for tcp in self.tcps:
-            self.startTimes.append(tcp.end)
+            e=tcp.end
+            self.startTimes.append(e)
+            tmp,_=tcp.get_batch(0,e)
+            tmp=tmp[self.idxs]
+            self.means.extend(tmp.mean(axis=1).tolist())
+            self.sigmas.extend(tmp.std(axis=1).tolist())
+        self.means=np.array(self.means).reshape(-1,1)
+        self.sigmas=np.array(self.sigmas).reshape(-1,1)
         self.startTTT=time.time()
         self.i=0
-        return 
+    def reviseBaseline(self):
+        assert len(self.tcps)>0 ,"接入数据不能为空"
+        means=[]
+        sigmas=[]
+        for tcp in self.tcps:
+            e = tcp.end
+            tmp,_=tcp.get_batch(max(e-10000,0),10000)
+            tmp=tmp[self.idxs]
+            means.extend(tmp.mean(axis=1).tolist())
+            sigmas.extend(tmp.std(axis=1).tolist())
+        self.means=np.array(means).reshape(-1,1)
+        self.sigmas=np.array(sigmas).reshape(-1,1)
         
     def predictOnce(self,startpos=-1,windows=1000):
         assert len(self.tcps)>0,"接入数据不能为空"

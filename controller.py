@@ -16,6 +16,7 @@ from flask_cors import CORS
 from threading import Lock
 from myresponse import success,fail
 import importlib
+import traceback
 
 thread_lock = Lock()
 _thread=None
@@ -91,7 +92,7 @@ def bcigo():
     except Exception as e:
         print(e)
         return fail(str(e))
-    return success()
+    return success({"channels":experiment.channels})
 
 @app.route("/api/reIdgo") 
 def reIDgo():
@@ -102,13 +103,44 @@ def reIDgo():
         return fail(str(e))
     return success()
 
-@app.route("/api/getdata")
+@app.route('/api/getdata')
 def getdata():
+    global experiment
+    # print("TCP END WHEN GET DATA",experiment.tcp.end)
+    try:
+        timeend=int(request.args.get('timeend'))
+        arr,rend=experiment.getData(timeend,zerobegin=True)
+        arr=(arr-experiment.means)/experiment.sigmas
+        # print(arr.tolist())
+    except Exception as e:
+        traceback.print_exc()
+        return fail(str(e))
+    # print("返回数据维度：", np.array(arr).shape)
+    # print(np.array(arr).shape)
+    # ['Fz','Cz','Pz','P3','P4','P7','P8','Oz','O1','O2','T7','T8']
+    return success({"data":arr.tolist(),'timeend':rend})
+    
+@app.route("/api/reviseBaseline")
+def reviseBaseline():
+    global experiment
+    try:
+        experiment.reviseBaseline()
+    except Exception as e:
+        print(e)
+        return fail(str(e))
+    return success("修正基线成功")
+
+@app.route("/api/closeBCI")
+def closeBCI():
+    global experiment
+    experiment.finish(savefile=False)
     return success()
 
 '''准备脑电接口'''
 def bciReady(filename='config.ini'):
     global experiment
+    if experiment!=None:
+        experiment.finish()
     conf.read(filename)
     experiment=Experiment()
     cur=conf['experiment']
@@ -120,7 +152,8 @@ def bciReady(filename='config.ini'):
     tmin=int(cur['tmin'])
     tmax=int(cur['tmax'])
     device=int(cur['device'])
-    experiment.setParameters(sessions,fitSessions,trials,duration,interval,tmin,tmax,device)
+    skipinterval=int(cur['skipinterval'])
+    experiment.setParameters(sessions,fitSessions,trials,duration,interval,tmin,tmax,device,skipinterval)
     print("实验创建成功")
     
     cur=conf['filter']

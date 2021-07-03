@@ -29,18 +29,22 @@ class TCPParser:  # The script contains one main class which handles Streamer da
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((self.host, self.port))
         self.crate_batch(self.ch_names,self.sampleRate)
-    def close(self):
+    def close(self,savefile=True):
         self.done=True
         #先停200ms确保当前正在接受的数据解析完毕
         time.sleep(0.2)
+        if not savefile:
+            self.signals=None
+            self.datalog=b''
         self.sock.close()
-    def saveData(self):
+    def saveData(self,startTime=0):
         ctime=time.strftime("%Y%m%d%H%M%S",time.localtime())
-        savepathlog="data/log"+ctime+".npy"
+        #savepathlog="data/log"+ctime+".npy"
         savepathvalue="data/value"+ctime+".npy"
-        np.save(savepathlog,self.data_log)
+        #np.save(savepathlog,self.data_log)
         np.save(savepathvalue,self.signals[:self.end])
-        
+        self.datalog=b''
+        self.signals=None
     def create_batch(self, ch_names, sampleRate=1000):
         self.ch_names = ch_names
         self.sampleRate = sampleRate
@@ -49,11 +53,12 @@ class TCPParser:  # The script contains one main class which handles Streamer da
     #获取指定位置的数据 如果传入-1 或者过大的时间值，则返回最新的，
     #若存在滤波器，会在数据返回之前进行滤波
     #windows为长度 startpos为起点
-    def get_batch(self,startPos:int,maxlength=200):
+    def get_batch(self,startPos:int,maxlength=1000):
         if startPos<=-1 :
             startPos=self.end-maxlength
         rend=min(self.end,startPos+maxlength)
         arr=self.signals[:,startPos:rend]
+        #print(self.end)
         return arr,rend
     
     def bufferToSignal(self, size):

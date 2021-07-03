@@ -7,7 +7,8 @@
     <title>脑机协同视频检测-主页</title>
     <script src="./js/vue.js"></script>
     <script src="./js/axios.min.js"></script>
-
+    <script type="text/javascript" src="./js/echarts.js"></script>
+    <script type="text/javascript" src="./js/imageList.js"></script>
     <!-- 引入样式 -->
     <link rel="stylesheet" href="./pkgs/element/lib/theme-chalk/index.css">
 <!-- 引入组件库 -->
@@ -16,17 +17,30 @@
 </head>
 <body>
     <div id="app">
-    <el-row>
-        <el-col :span="18"><div style="margin-bottom: 50px;"><img src="images/BCI_title.jpg" width="800px"/></div></el-col>
+    <el-row style="margin-top: 20px;margin-bottom: 30px;">
+        <el-col :span="16"><div ><img src="images/BCI_title.jpg" width="800px"/></div></el-col>
+        <el-col :span="6"><div style='color: #409eff; text-align: right; font-size: 50px; font-family: font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif;'><i class="el-icon-location-information"></i>视频目标跟踪</div></el-col>
     </el-row>
     <el-row>
-        <el-col :span="4"><div style="width:100%;height:20px;"></div></el-col>
+        <el-steps :active="active" simple>
+            <el-step title="接入脑电" icon="el-icon-s-custom"></el-step>
+            <el-step title="接入计算机视觉" icon="el-icon-cpu"></el-step>
+            <el-step title="接入眼动仪" icon="el-icon-aim"></el-step>
+          </el-steps>
+    </el-row>
+    <el-row style="margin-top: 10px;">
+        <el-col :span="1"><div style="width:100%;height:20px;"></div></el-col>
         <el-col :span="19">
-                <el-button @click="connectToBCI()" type="primary" round>接入脑电</el-button>
-                <el-button @click="connectToREID()" type="primary" round>接入计算机视觉</el-button>
-                <el-button @click="connectToEye()" type="primary" round>接入眼动仪</el-button>
+                <el-button id="BCIbtn" @click="dealBCI()" type="primary" round><i class="el-icon-s-custom"></i>接入脑电</el-button>
+                <el-button @click="connectToREID()" type="primary" round><i class="el-icon-cpu"></i>接入计算机视觉</el-button>
+                <el-button @click="connectToEye()" type="primary" round><i class="el-icon-aim"></i>接入眼动仪</el-button>
+                <el-button @click="reviseBaseline()" type="primary" round>修正脑电基线</el-button>
+                <el-button @click="pretrain()" type="primary" round>预训练脑电判别模型</el-button>
         </el-col>
     </el-row>
+
+    <el-row><div id="bcicontainer" style="height: 600px"></div></el-row>
+    <el-row id="rsvpblock"><el-image :src="showimg"></el-image></el-row>
 </div>
 </body>
 
@@ -35,32 +49,13 @@
 var app=new Vue({
     el: "#app",
     data:{
-        baseurl: "http://127.0.0.1",
-        items: [
-      { 
-        id: "r1",
-        src: 'videos/2021070114.mp4',
-        currentTime: 10, },
-      { id: "r2",
-        src: 'videos/202106010931.mp4',
-        currentTime: 5.5,
-    },
-    { id: "r3",
-        src: 'videos/202106010933.mp4',
-        currentTime: 2.5,
-    },
-    { id: "r4",
-        src: 'videos/202106010934.mp4',
-        currentTime: 1.5,
-    },{ id: "r5",
-        src: 'videos/202107011423.mp4',
-        currentTime: 139,
-    },
-    ],
-    speedId: 3,
-    speedList:[
-           0.25,0.5,0.75,1,2,4,6,8,10,16
-    ]
+        bcistatus:0,
+        baseurl:"http://127.0.0.1",
+        active: 0,
+        channels:["FZ", "FC1", "FC2", "C3", "CZ", "C4", "CP1", "CP2", "P7", "P3", "PZ", "P4", "P8", "O1", "OZ", "O2"],
+        imageList:blockimages,
+        timgs:timgs,
+        showimg:blockimages[0][0],
     },
     methods:{
         toLoading(message){
@@ -72,6 +67,45 @@ var app=new Vue({
                 background: 'rgba(0, 0, 0, 0.5)'
             })
         },
+        reviseBaseline(){
+            let loading;
+            loading = this.toLoading("正在修正基线");
+            let aurl=this.baseurl+"/api/reviseBaseline";
+            axios.get(aurl).then(function(response){
+                data=response.data
+                if (data.code==1)
+                    app.$message.error(data.data);
+                else{
+                    app.$message.success("基线修正成功");
+                }
+                loading.close();
+            })
+            .catch(function(error){
+                app.$message.error(String(error));
+                loading.close();
+            });
+        },
+        closeBCI(){
+            let loading;
+            clearInterval(this.dataInterval);
+            loading = this.toLoading("正在关闭上一个脑电模块");
+            let aurl=this.baseurl+"/api/closeBCI";
+            axios.get(aurl).then(function(response){
+                data=response.data
+                if (data.code==1)
+                    app.$message.error(data.data);
+                else{
+                    app.$message.success("脑电连接关闭成功");
+                    document.getElementById("BCIbtn").innerHTML="接入脑电";
+                    app.bcistatus=0;
+                }
+                loading.close();
+            })
+            .catch(function(error){
+                app.$message.error(String(error));
+                loading.close();
+            });
+        },
         connectToBCI(){
             let loading;
             loading = this.toLoading("正在接入脑电信号模块");
@@ -80,14 +114,31 @@ var app=new Vue({
                 data=response.data
                 if (data.code==1)
                     app.$message.error(data.data);
-                else
+                else{
                     app.$message.success("脑电连接成功");
+                    app.channels=data.data.channels;
+                    app.bcistatus=1;
+                    document.getElementById("BCIbtn").innerHTML="断开脑电连接";
+                    app.initEcharts();
+                    app.reviseBaseline();
+                    this.dataInterval=setInterval(()=>{
+                        app.getdata();
+                    },60);
+                }
                 loading.close();
             })
             .catch(function(error){
-                app.$message.error(error);
+                app.$message.error(String(error));
                 loading.close();
             });
+            app.active++;
+        },
+        dealBCI(){
+            if(this.bcistatus==0){
+                this.connectToBCI();
+            }else{
+                this.closeBCI();
+            }
         },
         connectToREID(){
             let loading;
@@ -102,9 +153,10 @@ var app=new Vue({
                 loading.close();
             })
             .catch(function(error){
-                app.$message.error(error);
+                app.$message.error(String(error));
                 loading.close();
             });
+            app.active++;
         },
         connectToEye(){
             let loading;
@@ -121,11 +173,114 @@ var app=new Vue({
                 app.$message.error(String(error));
                 loading.close();
             });
+            app.active++;
+        },
+        getdata(){
+            let aurl= this.baseurl + "/api/getdata";
+            axios.get(aurl,{
+                params: {
+                    timeend: app.end,
+                }
+            }).then(function(response){
+                data=response.data
+                if (data.code==1){
+                    console.log(data.data);
+                }
+                else{
+                    data=data.data.data;
+                    for (var i = 0; i < data[0].length; i++) {
+                        for(var j = 0 ; j <app.channels.length; j++){
+                            app.signals[j].shift()
+                            app.signals[j].push(data[j][i]+j*6);
+                        }
+                        app.end++;
+                        if ((i+1)%30==0){
+                            series=[]   
+                            for(var j = 0; j < app.channels.length; j++){
+                                series.push({data:app.signals[j]})
+                            }
+                            app.myChart.setOption({
+                                series: series,
+                            });
+                        }
+                    }
+                    series=[]
+                    for(var j = 0; j < app.channels.length; j++){
+                        series.push({name:app.channels[j],type:'line',showSymbol:false,hoverAnimation:false,data:app.signals[j],tooltip: {trigger: 'item',},})
+                    }
+                    app.myChart.setOption({
+                        series: series,
+                    });
+                }
+            }).catch(function(error){
+                app.$message.error(String(error));
+            });
+        },
+        pretrain(){
+            document.getElementById("bcicontainer").hidden=true;
+            document.getElementById("rsvpblock").hidden=false;
+        },
+        initEcharts(){
+            let dom = document.getElementById("bcicontainer");
+            document.getElementById("rsvpblock").hidden=true;
+            document.getElementById("bcicontainer").hidden=false;
+            this.myChart = echarts.init(dom);
+            let option;
+            this.signals = [];
+            for(var i =0 ;i< this.channels.length;i++){
+                this.signals.push([]);
+            }
+            // data=[1,0,-1,1,2,6]
+            for (var i = 0; i < 1500; i++) {
+                for(var j = 0 ; j <this.channels.length; j++){
+                    this.signals[j].push(6*j);
+                }
+            }
+            this.end=0;
+            series=[]
+            for(var i = 0; i < this.channels.length; i++){
+                series.push({name:this.channels[i],type:'line',showSymbol:false,hoverAnimation:false,data:this.signals[i],tooltip: {trigger: 'item',},})
+            }
+            option = {
+                tooltip: {
+                },
+                xAxis: {
+		            show: false,
+                    type: 'category',
+                    min: 0,
+                    max:1500,
+                    splitLine: {
+                        show: false
+                    }
+                },
+                yAxis: {
+                    show: true,
+                    type: 'value',
+                    min: -6,
+                    max: this.channels.length*6+2,
+                    interval:6,
+                    axisLabel:{
+                        formatter: function (value,index) {
+                            var texts = [];
+                            if (index>=1)
+                                texts.push(app.channels[index-1]);
+                            return texts;
+                        }
+                    },
+                    splitLine: {
+                        show: false
+                    },
+                },
+                series: series
+            };
+            if (option && typeof option === 'object') {
+                this.myChart.setOption(option);
+            }
         },
     }
 });
 
-
+app.initEcharts();
 </script>
 
 </html>
