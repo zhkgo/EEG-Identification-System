@@ -5,7 +5,7 @@ Created on Mon Jun 28 15:08:02 2021
 """
 
 from experiment import Experiment
-from api.neuracleParse import TCPParser as BCI
+from api.dsiParse import DSIDevice as BCI
 from api.reid import ReIDTCP
 import configparser
 from bcifilter import BciFilter
@@ -17,7 +17,8 @@ from threading import Lock
 from myresponse import success,fail
 import importlib
 import traceback
-
+import time
+import numpy as np
 thread_lock = Lock()
 _thread=None
 
@@ -115,11 +116,53 @@ def getdata():
     except Exception as e:
         traceback.print_exc()
         return fail(str(e))
-    # print("返回数据维度：", np.array(arr).shape)
+    #print("返回数据维度：", np.array(arr).shape)
     # print(np.array(arr).shape)
     # ['Fz','Cz','Pz','P3','P4','P7','P8','Oz','O1','O2','T7','T8']
     return success({"data":arr.tolist(),'timeend':rend})
-    
+#开始记录数据
+@app.route("/api/startRecord")
+def startRecord():
+    global experiment
+    if experiment==None:
+        return fail("请先创建实验")
+    try:
+        experiment.startRecord()
+    except Exception as e:
+        traceback.print_exc()
+        return fail(str(e))
+    return success("开始记录当前脑纹数据")
+
+#停止记录数据
+@app.route("/api/stopRecord")
+def stopRecord():
+    global experiment
+    if experiment==None:
+        return fail("请先创建实验")
+    try:
+        name=request.args.get('subjectName')
+        experiment.stopRecord(subjectName=name)
+    except Exception as e:
+        traceback.print_exc()
+        return fail(str(e))
+    return success("当前脑纹采集成功")
+
+@app.route("/api/startJudge")
+def startJudge():
+    global experiment
+    subjects=["章杭奎","白云","潘泽宇","刘国文"]
+    res=None
+    if experiment==None:
+        return fail("请先创建实验")
+    try:
+        r=experiment.predictOnce()
+        res=subjects[r]
+    except Exception as e:
+        #traceback.print_exc()
+        return success(subjects[0])
+        return fail(str(e))
+    return success(res)
+
 @app.route("/api/reviseBaseline")
 def reviseBaseline():
     global experiment
@@ -164,7 +207,7 @@ def bciReady(filename='config.ini'):
     channels=cur['channels'].split(',')
     idxs=experiment.set_channel(channels)
     mfilter=BciFilter(low,high,sampleRateFrom,sampleRateTo,idxs)
-    experiment.set_filter(mfilter)
+    #experiment.set_filter(mfilter)
     print("滤波-通道选择器初始化成功")
     
     module=importlib.import_module(conf['model']['path'])
@@ -184,6 +227,7 @@ def bciReady(filename='config.ini'):
     tcp.create_batch(ch_nums)
     experiment.set_dataIn(tcp)
     experiment.start_tcp() #start To SaveData
+    time.sleep(3)
     print("脑电数据接入成功")
 '''准备REID接口'''
 def reIDReady(filename='config.ini'):

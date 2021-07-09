@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>脑机协同视频检测-主页</title>
+    <title>脑纹识别系统-主页</title>
     <script src="./js/vue.js"></script>
     <script src="./js/axios.min.js"></script>
     <script type="text/javascript" src="./js/echarts.js"></script>
@@ -25,28 +25,29 @@
     <div id="app">
     <el-row style="margin-top: 20px;margin-bottom: 30px;">
         <el-col :span="16"><div ><img src="./images/BCI_title.jpg" width="800px"/></div></el-col>
-        <el-col :span="6"><div style='color: #409eff; text-align: right; font-size: 50px; font-family: font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif;'><i class="el-icon-location-information"></i>视频目标跟踪</div></el-col>
+        <el-col :span="6"><div style='line-height:height; color: #409eff; text-align: right; font-size: 50px; font-family: font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif;'><i class="el-icon-location-information"></i>脑纹识别系统</div></el-col>
         <audio id="tishiyin" src="./sounds/tishi.wav" preload="auto"></audio>
     </el-row>
     <el-row>
         <el-steps :active="active" simple>
             <el-step title="接入脑电" icon="el-icon-s-custom"></el-step>
-            <el-step title="接入计算机视觉" icon="el-icon-cpu"></el-step>
-            <el-step title="接入眼动仪" icon="el-icon-aim"></el-step>
+            <el-step title="接入判别模型" icon="el-icon-cpu"></el-step>
+            <el-step title="录入脑纹" icon="el-icon-aim"></el-step>
           </el-steps>
     </el-row>
-    <el-row style="margin-top: 10px;">
+    <el-row style="margin-top: 20px;">
         <el-col :span="1"><div style="width:100%;height:20px;"></div></el-col>
         <el-col :span="19">
-                <el-button id="BCIbtn" @click="dealBCI()" type="primary" round><i class="el-icon-s-custom"></i>接入脑电</el-button>
-                <el-button @click="connectToREID()" type="primary" round><i class="el-icon-cpu"></i>接入计算机视觉</el-button>
-                <el-button @click="connectToEye()" type="primary" round><i class="el-icon-aim"></i>接入眼动仪</el-button>
-                <el-button @click="reviseBaseline()" type="primary" round>修正脑电基线</el-button>
-                <el-button @click="pretrain()" type="primary" round>预训练脑电判别模型</el-button>
+                <el-button id="BCIbtn" @click="dealBCI()" type="danger" size="small" round><i class="el-icon-s-custom"></i>接入脑电</el-button>
+                <el-button @click="reviseBaseline()" type="success" size="small" round>修正脑电基线</el-button>
+				<el-button @click="startRecord()" type="primary" size="small"  round><i class="el-icon-cpu"></i>开始采集当前被试</el-button>
+                <el-button @click="inputBox()" type="info" size="small" round>停止采集</el-button>
+				<el-button @click="recognize()" type="info" size="small" round>识别当前被试</el-button>
+                <el-tag id="timeCount">00:00</el-tag>
         </el-col>
     </el-row>
 
-    <el-row><div id="bcicontainer" style="height: 600px"></div></el-row>
+    <el-row><div id="bcicontainer" style="margin-top:20 px; height: 760px"></div></el-row>
     <el-row id="rsvpblock" style="margin-top:20px;margin-left: 50px;">
         <el-col style="text-align:center" :span="3">
             <h2>请注意以下目标</h2>
@@ -64,6 +65,9 @@
 </body>
 
 <script>
+function fix(num, length) {
+  return ('' + num).length < length ? ((new Array(length + 1)).join('0') + num).slice(-length) : '' + num;
+}
 
 var app=new Vue({
     el: "#app",
@@ -81,6 +85,7 @@ var app=new Vue({
         sessions:5,
         cursession:0,
         curtrial:0,
+        hiddenTime: "hidden",
     },
     methods:{
         toLoading(message){
@@ -179,7 +184,7 @@ var app=new Vue({
                     app.reviseBaseline();
                     this.dataInterval=setInterval(()=>{
                         app.getdata();
-                    },60);
+                    },250);
                 }
                 loading.close();
             })
@@ -196,16 +201,26 @@ var app=new Vue({
                 this.closeBCI();
             }
         },
-        connectToREID(){
+        showRecordTime(){
+            var d=document.getElementById("timeCount");
+            var now=Date.now();
+            d.innerHTML=fix(Math.ceil((now-app.startRecordTime)/60000),2)+":"+fix(Math.ceil((now-app.startRecordTime)/1000)%60,2);
+        },
+        startRecord(){
             let loading;
-            loading = this.toLoading("正在接入计算机视觉模块");
-            let aurl= this.baseurl + "/api/reIdgo";
+            loading = this.toLoading("正在开始采集数据");
+            let aurl= this.baseurl + "/api/startRecord";
             axios.get(aurl).then(function(response){
                 data=response.data
                 if (data.code==1)
                     app.$message.error(data.data);
-                else
-                    app.$message.success("视觉模块连接成功");
+                else{
+                    app.$message.success("开始采集数据");
+                    app.startRecordTime=Date.now();
+                    app.recordInteval=setInterval(()=>{
+                        app.showRecordTime();
+                    },1000)
+                }
                 loading.close();
             })
             .catch(function(error){
@@ -214,22 +229,61 @@ var app=new Vue({
             });
             app.active++;
         },
-        connectToEye(){
+		inputBox(){
+		    this.$prompt('', '脑纹所属人姓名', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+            }).then(({ value }) => {
+                app.stopRecord(value);
+            }).catch(() => {
+                app.$message({
+                type: 'info',
+                message: '出现未知问题'
+                });
+            });
+		},
+        stopRecord(name){
             let loading;
-            loading = this.toLoading("正在接入眼动仪模块");
-            let aurl= this.baseurl + "/api/eyeGo";
-            axios.get(aurl).then(function(response){
+            loading = this.toLoading("正在保存脑纹数据");
+            let aurl= this.baseurl + "/api/stopRecord";
+            console.log(name);
+            axios.get(aurl,{
+                    params:{
+                        subjectName: name,
+                    }
+                }).then(function(response){
                 loading.close();
                 data=response.data
                 if (data.code==1)
                     app.$message.error(data.data);
-                else
-                    app.$message.success("眼动仪连接成功");
+                else{
+                    app.$message.success("保存脑纹数据成功");
+                    clearInterval(app.recordInteval);
+                    document.getElementById("timeCount").innerHTML="00:00";
+                }
             }).catch(function(error){
                 app.$message.error(String(error));
                 loading.close();
             });
             app.active++;
+        },
+        recognize(){
+            let loading;
+            loading = this.toLoading("正在观察当前脑纹");
+            let aurl= this.baseurl + "/api/startJudge";
+
+            axios.get(aurl).then(function(response){
+                loading.close();
+                data=response.data
+                if (data.code==1)
+                    app.$message.error(data.data);
+                else{
+                    app.$message.success({message:"识别到当前脑纹属于"+data.data,duration:0,showClose:true});
+                }
+            }).catch(function(error){
+                app.$message.error(String(error));
+                loading.close();
+            });
         },
         getdata(){
             let aurl= this.baseurl + "/api/getdata";

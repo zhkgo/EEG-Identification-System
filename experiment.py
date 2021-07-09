@@ -12,6 +12,7 @@ class Experiment:
         self.CHANNELS=[
             ['Fp1','Fp2','F3','F4','F7','F8','FC1','FC2','FC5','FC6','Cz','C3','C4','T7','T8','CP1','CP2','CP5','CP6','Pz','P3','P4','P7','P8','POz','PO3','PO4','PO5','PO6','Oz','O1','O2','ref'],#ref 参考电极
             ['FP1','FPZ','FP2','AF3','AF4','F7','F5','F3','F1','FZ','F2','F4','F6','F8','FT7','FC5','FC3','FC1','FCZ','FC2','FC4','FC6','FT8','T7','C5','C3','C1','CZ','C2','C4','C6','T8','M1','TP7','CP5','CP3','CP1','CPZ','CP2','CP4','CP6','TP8','M2','P7','P5','P3','P1','PZ','P2','P4','P6','P8','PO7','PO5','PO3','POZ','PO4','PO6','PO8','CB1','O1','OZ','O2','CB2'],
+            ['P3', 'C3', 'F3', 'Fz', 'F4', 'C4', 'P4', 'Cz', 'CM', 'A1', 'Fp1', 'Fp2', 'T3', 'T5', 'O1', 'O2', 'X3', 'X2', 'F7', 'F8', 'X1', 'A2', 'T6', 'T4', 'TRG']
             ]
         self.tcps=[]
         self.classfier=None
@@ -35,7 +36,7 @@ class Experiment:
         self.interval=0 #session之间的间隔
         self.tmin=0 #截取时间起点（相比于trail开始的时间点 单位ms）
         self.tmax=0 #截取时间终点（相比于trail开始的时间点 单位ms）
-        self.device=0  #device= 0 博瑞康 device=1 neuroscan 
+        self.device=0  #device= 0 博瑞康 device=1 neuroscan device=2表示DSI24
         self.device_channels=[]
         self.events=[]
         self.fitEvents=[]
@@ -90,7 +91,7 @@ class Experiment:
             if self.skipinterval==0:
                 cur+=self.interval
         self.device=device
-        assert device<2,"设备编号应当小于2"
+        assert device<3,"设备编号应当小于3"
         self.device_channels=self.CHANNELS[self.device]
     #暂未重写 先留着 还没啥用处
     def restart_tcp(self):
@@ -177,9 +178,12 @@ class Experiment:
         self.startTimes=[]
         for tcp in self.tcps:
             self.startTimes.append(tcp.end)
-    def stopRecord(self):
-        self.finish()
-        return "实验结束"
+    def stopRecord(self,subjectName="default"):
+        for tcp,startTime in zip(self.tcps,self.startTimes):
+            tcp.saveData(subjectName,startTime)
+            print(tcp.name,end=':')
+            print("%s成功采集"%(subjectName))
+        return "当前脑纹成功采集"
     def getMinEnd(self):
         minv=100000000
         for tcp,startTime in zip(self.tcps,self.startTimes):
