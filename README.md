@@ -1,2 +1,3 @@
-# XIAO
-Xenic Interaction Automatic Object identification
+# EEG-Identification System
+
+EEG-Identification System
