@@ -150,20 +150,20 @@ def stopRecord():
 @app.route("/api/startJudge")
 def startJudge():
     global experiment
-    subjects=["章杭奎","白云","潘泽宇","刘国文"]
+    subjects=["章杭奎","刘国文","孔万增","潘泽宇","金宣妤"]
     res=None
     if experiment==None:
         return fail("请先创建实验")
     try:
         rr=[]
-        for i in range(10)
+        for i in range(20):
             rr.append(experiment.predictOnce())
             print(subjects[rr[-1]],end=' ')
-            time.sleep(0.2)
+            time.sleep(0.05)
         print("")
         res=subjects[max(rr,key=rr.count)] #小数据范围有效
     except Exception as e:
-        #traceback.print_exc()
+        traceback.print_exc()
         return success(subjects[0])
         return fail(str(e))
     return success(res)

@@ -257,10 +257,10 @@ class Experiment:
         self.means=np.array(means).reshape(-1,1)
         self.sigmas=np.array(sigmas).reshape(-1,1)
         
-    def predictOnce(self,startpos=-1,windows=1000):
+    def predictOnce(self,startpos=-1,windows=200):
         assert len(self.tcps)>0,"接入数据不能为空"
         assert self.classfier !=None, "分类器不能为空"
-        data,_=self.getData(startpos,windows=windows,tcpid=-1)
+        data,_=self.getData(startpos,windows=windows,zerobegin=True)
         data=np.expand_dims(data,axis=0)
         label=self.classfier.predict(data)[0]
         return label

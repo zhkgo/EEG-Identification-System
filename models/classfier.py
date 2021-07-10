@@ -4,6 +4,9 @@ import numpy as np
 import pickle
 from sklearn import svm
 from sklearn.pipeline import Pipeline
+from pyriemann.estimation import XdawnCovariances
+from pyriemann.tangentspace import TangentSpace
+from sklearn.preprocessing import PowerTransformer
 
 '''
 demo 文件。
@@ -13,43 +16,9 @@ demo 文件。
 3.模型可以自己进行封装，比如把原来不是predict的封装成带predict函数的类，加入预处理等等。
 '''
 def getClassName():
-    return ['FlatFeature','BrainClass']
-class FlatFeature:
-    def __init__(self,ch_nums=16,types="stand"):
-        book={"minmax":MinMaxScaler,"stand":StandardScaler}
-        self.ch_nums=ch_nums
-        if types == None:
-            self.scaler = None
-        else:
-            self.scaler=book[types]()
-    def transform(self,data):
-        res=np.array(data).reshape(data.shape[0],-1)
-        if self.scaler == None:
-            return res
-        return self.scaler.transform(res)
-    def fit_transform(self,data,label):
-        res=np.array(data).reshape(data.shape[0],-1)
-        if self.scaler is not None:
-            return self.scaler.fit_transform(res)
-        return res
-def getScaler():
-    scaler=None
-    with open("models/ff.scaler","rb") as f:
-        scaler=pickle.load(f)
-    return scaler
-class BrainClass:
-    def __init__(self):
-        self.model=None
-        self.scaler=getScaler()
-        with open("models/svm.model","rb") as f:
-            self.model=pickle.load(f)
-        self.pipe=Pipeline(steps=[('scaler', self.scaler), ('svm', self.model)])
-    def aug_train(self,train_x,train_y):
-        train_x=self.scaler.fit_transform(train_x,train_y)
-        self.model.fit(train_x,train_y)
-        self.pipe=Pipeline(steps=[('scaler', self.scaler), ('svm', self.model)])
-    def predict(self,test_x):
-        return self.pipe.predict(test_x)
+    return []
+
 
 def getModel():
-    return BrainClass()
+    with open("models/recognize.pkl","rb") as f:
+        return pickle.load(f)
