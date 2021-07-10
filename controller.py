@@ -155,8 +155,13 @@ def startJudge():
     if experiment==None:
         return fail("请先创建实验")
     try:
-        r=experiment.predictOnce()
-        res=subjects[r]
+        rr=[]
+        for i in range(10)
+            rr.append(experiment.predictOnce())
+            print(subjects[rr[-1]],end=' ')
+            time.sleep(0.2)
+        print("")
+        res=subjects[max(rr,key=rr.count)] #小数据范围有效
     except Exception as e:
         #traceback.print_exc()
         return success(subjects[0])
