@@ -33,58 +33,58 @@ CORS(app, supports_credentials=True)
 socketio = SocketIO(app)
 
 
-def background_task():
-    global linker,experiment,reID
-    experiment.start()
-    while experiment.fitSessions>0:
-        socketio.sleep(0.1)
-        res=experiment.trainThreadStep1()
-        if res=="wait":
-            continue
-        if type(res) is str:
-            print(res)
-            socketio.emit('my_response',success({"finish":1,"message":res}))
-            break
-        socketio.emit('my_response',success({"finish":0,"sessions":res[0],"trials":res[1]}))
-    if experiment.fitSessions>0:
-        res=experiment.trainThreadStep2()
-        socketio.emit('my_response',success({"finish":1,"message":res}))
-    while True:
-        res=experiment.predictThread()
-        if res=="wait":
-            continue
-        if type(res) is str:
-            print(res)
-            socketio.emit('my_response',success({"finish":1,"message":res}))
-            break
-        res,ctime=res[0],res[2]
-        if res==1:
-            d=linker.match(ctime)
-            if type(d) is list:
-                if reID is not None:
-                    d=reID.getMoreVideo(d)
-                socketio.emit('newdeeplinks',success({"deeplinks":[item.toJson for item in d]}))
+# def background_task():
+#     global linker,experiment,reID
+#     experiment.start()
+#     while experiment.fitSessions>0:
+#         socketio.sleep(0.1)
+#         res=experiment.trainThreadStep1()
+#         if res=="wait":
+#             continue
+#         if type(res) is str:
+#             print(res)
+#             socketio.emit('my_response',success({"finish":1,"message":res}))
+#             break
+#         socketio.emit('my_response',success({"finish":0,"sessions":res[0],"trials":res[1]}))
+#     if experiment.fitSessions>0:
+#         res=experiment.trainThreadStep2()
+#         socketio.emit('my_response',success({"finish":1,"message":res}))
+#     while True:
+#         res=experiment.predictThread()
+#         if res=="wait":
+#             continue
+#         if type(res) is str:
+#             print(res)
+#             socketio.emit('my_response',success({"finish":1,"message":res}))
+#             break
+#         res,ctime=res[0],res[2]
+#         if res==1:
+#             d=linker.match(ctime)
+#             if type(d) is list:
+#                 if reID is not None:
+#                     d=reID.getMoreVideo(d)
+#                 socketio.emit('newdeeplinks',success({"deeplinks":[item.toJson for item in d]}))
                 
-@socketio.on('connect',namespace='/pushDeeplink')
-def recevDeepLink(jsondata):
-    print(type(jsondata))
-    print(jsondata)
-    model=VideoDeepLink
-    for (key,value) in jsondata.items():
-        model.__setattr__(key,value)
-    linker.append(model)
-    emit("receive",success({"finish":1,"message":"接受成功"}))
+# @socketio.on('connect',namespace='/pushDeeplink')
+# def recevDeepLink(jsondata):
+#     print(type(jsondata))
+#     print(jsondata)
+#     model=VideoDeepLink
+#     for (key,value) in jsondata.items():
+#         model.__setattr__(key,value)
+#     linker.append(model)
+#     emit("receive",success({"finish":1,"message":"接受成功"}))
 
-@socketio.on('startDetection')
-def startDetection():
-    global _thread
-    try:
-        if thread_lock:
-            _thread = socketio.start_background_task(target=background_task)
-    except Exception as e:
-        print(e)
-        emit("my_response",fail(str(e)))
-    emit("my_response",success())
+# @socketio.on('startDetection')
+# def startDetection():
+#     global _thread
+#     try:
+#         if thread_lock:
+#             _thread = socketio.start_background_task(target=background_task)
+#     except Exception as e:
+#         print(e)
+#         emit("my_response",fail(str(e)))
+#     emit("my_response",success())
 
 @app.route("/api/bcigo") 
 def bcigo():
@@ -93,16 +93,9 @@ def bcigo():
     except Exception as e:
         print(e)
         return fail(str(e))
-    return success({"channels":experiment.channels})
-
-@app.route("/api/reIdgo") 
-def reIDgo():
-    try:
-        reIDReady()
-    except Exception as e:
-        print(e)
-        return fail(str(e))
-    return success()
+    # return success({"channels":experiment.channels})
+    print(experiment.channels)
+    return success({"channels":['P3', 'P4', 'Fz', 'F3', 'F4', 'Fp1', 'Fp2']})
 
 @app.route('/api/getdata')
 def getdata():
@@ -119,6 +112,10 @@ def getdata():
     #print("返回数据维度：", np.array(arr).shape)
     # print(np.array(arr).shape)
     # ['Fz','Cz','Pz','P3','P4','P7','P8','Oz','O1','O2','T7','T8']
+    #选择部分通道显示
+    idxs=[0,6,3,2,4,10,11]
+    arr=arr[idxs]
+    # print(np.array(arr).shape)
     return success({"data":arr.tolist(),'timeend':rend})
 #开始记录数据
 @app.route("/api/startRecord")
@@ -236,10 +233,10 @@ def bciReady(filename='config.ini'):
     time.sleep(3)
     print("脑电数据接入成功")
 '''准备REID接口'''
-def reIDReady(filename='config.ini'):
-    global reID
-    conf.read(filename)
-    cur=conf['reidtcp']
-    reID=ReIDTCP(host=cur['host'],port=int(cur['port']))
+# def reIDReady(filename='config.ini'):
+#     global reID
+#     conf.read(filename)
+#     cur=conf['reidtcp']
+#     reID=ReIDTCP(host=cur['host'],port=int(cur['port']))
 if __name__=='__main__':    
     socketio.run(app, host='0.0.0.0',port=80, debug=False)

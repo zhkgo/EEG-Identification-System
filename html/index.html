@@ -318,9 +318,9 @@ var app=new Vue({
                     for(var j = 0; j < app.channels.length; j++){
                         series.push({name:app.channels[j],type:'line',showSymbol:false,hoverAnimation:false,data:app.signals[j],tooltip: {trigger: 'item',},})
                     }
-                    app.myChart.setOption({
-                        series: series,
-                    });
+                    // app.myChart.setOption({
+                    //     series: series,
+                    // });
                 }
             }).catch(function(error){
                 app.$message.error(String(error));
@@ -373,7 +373,7 @@ var app=new Vue({
                 this.signals.push([]);
             }
             // data=[1,0,-1,1,2,6]
-            for (var i = 0; i < 1500; i++) {
+            for (var i = 0; i < 500; i++) {
                 for(var j = 0 ; j <this.channels.length; j++){
                     this.signals[j].push(6*j);
                 }
@@ -390,7 +390,7 @@ var app=new Vue({
 		            show: false,
                     type: 'category',
                     min: 0,
-                    max:1500,
+                    max:500,
                     splitLine: {
                         show: false
                     }
@@ -422,7 +422,7 @@ var app=new Vue({
     }
 });
 
-app.initEcharts();
+// app.initEcharts();
 </script>
 
 </html>

@@ -117,7 +117,7 @@ class Experiment:
     #数据格式为 channels*times
     # 如果tcpid=-1 则返回全部按通道叠加后的数据，否则返回对应通道的数据
     # 若zerobegin 则以0为基准，而不是实验开始时间
-    def getData(self,startpos:int,windows=1000,tcpid=0,median=False,zerobegin=False):
+    def getData(self,startpos:int,windows=5000,tcpid=0,median=False,zerobegin=False):
         assert len(self.tcps)>0,"请先设置TCP"
         if tcpid!=-1:
             data,rend=None,None
