@@ -24,7 +24,7 @@
 <body>
     <div id="app">
     <el-row style="margin-top: 5px;">
-        <el-col :span="16"><img src="./images/HDUBCI.jpg" height="120px"/></el-col>
+        <el-col :span="16"><img src="./images/HDUBCI.jpg" height="150px"/></el-col>
         <el-col :span="6"><div style='line-height:height; color: #409eff; text-align: right; font-size: 50px; font-family: font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif;'><i class="el-icon-location-information"></i>脑纹识别系统</div></el-col>
         <audio id="tishiyin" src="./sounds/tishi.wav" preload="auto"></audio>
     </el-row>
@@ -204,7 +204,7 @@ var app=new Vue({
         showRecordTime(){
             var d=document.getElementById("timeCount");
             var now=Date.now();
-            d.innerHTML=fix(Math.ceil((now-app.startRecordTime)/60000),2)+":"+fix(Math.ceil((now-app.startRecordTime)/1000)%60,2);
+            d.innerHTML=fix(Math.floor((now-app.startRecordTime)/60000),2)+":"+fix(Math.floor((now-app.startRecordTime)/1000)%60,2);
         },
         startRecord(){
             let loading;

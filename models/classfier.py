@@ -16,9 +16,16 @@ demo 文件。
 3.模型可以自己进行封装，比如把原来不是predict的封装成带predict函数的类，加入预处理等等。
 '''
 def getClassName():
-    return []
+    return ['BrainClass']
 
-
+class BrainClass:
+    def __init__(self,):
+        with open("models/recognize.pkl","rb") as f:
+            self.model=pickle.load(f)
+        self.idxs=[i for i in range(15)]
+        self.idxs.extend([18,19,21,22,23])
+    def predict(self,x):
+        x=x[:,self.idxs,:]
+        return self.model.predict(x)
 def getModel():
-    with open("models/recognize.pkl","rb") as f:
-        return pickle.load(f)
+    return BrainClass()

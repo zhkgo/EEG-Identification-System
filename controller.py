@@ -150,13 +150,13 @@ def stopRecord():
 @app.route("/api/startJudge")
 def startJudge():
     global experiment
-    subjects=["章杭奎","刘国文","孔万增","潘泽宇","金宣妤"]
+    subjects=["刘国文","章杭奎","潘泽宇","金宣妤"]
     res=None
     if experiment==None:
         return fail("请先创建实验")
     try:
         rr=[]
-        for i in range(20):
+        for i in range(100):
             rr.append(experiment.predictOnce())
             print(subjects[rr[-1]],end=' ')
             time.sleep(0.05)
@@ -183,6 +183,7 @@ def closeBCI():
     global experiment
     experiment.finish(savefile=False)
     return success()
+
 
 '''准备脑电接口'''
 def bciReady(filename='config.ini'):
