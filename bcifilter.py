@@ -22,6 +22,8 @@ class BciFilter:
         
     def deal(self,data):
         #先滤波后降采样
+        if data.shape[1]<20:
+            return data
         data=data[self.idxs]
         data=signal.filtfilt(self.b,self.a,data)
         secs=data.shape[1]/self.sampleRate

@@ -52,7 +52,7 @@
         </video>
     </el-row>
     <el-row><div id="bcicontainer" style="margin-top:20px; height: 760px"></div></el-row>
-    <el-row id="rsvpblock" style="margin-top:20px;display:none; margin-left: 50px;">
+    <el-row id="rsvpblock" style="margin-top:20px; margin-left: 50px;">
         <el-col style="text-align:center" :span="3">
             <h2>请注意以下目标</h2>
             <el-card class="box-card">
@@ -84,7 +84,7 @@ var app=new Vue({
         timgs:timgs,
         showimg:blockimages[0][0],
         timg:timgs[0],
-        present:200,
+        present:500,
         trials:200,
         sessions:5,
         cursession:0,
@@ -156,6 +156,7 @@ var app=new Vue({
                 }
                 return;
             }
+
             this.showimg=this.imageList[this.cursession][this.curtrial];
             var eps=Date.now()-this.present*this.curtrial-this.firstshow;
             this.curtrial++;
@@ -225,8 +226,9 @@ var app=new Vue({
                     app.recordInteval=setInterval(()=>{
                         app.showRecordTime();
                     },1000)
-                    clearInterval(this.dataInterval);
                     app.pretrain();
+                    clearInterval(this.dataInterval);
+
                 }
                 loading.close();
             })
@@ -238,6 +240,7 @@ var app=new Vue({
 
         },
 		inputBox(){
+		    document.getElementById("rsvpblock").style.display="none";
 		    this.$prompt('', '脑纹所属人姓名', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
