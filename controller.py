@@ -91,7 +91,6 @@ def bcigo():
     try:
         bciReady()
     except Exception as e:
-        print(e)
         return fail(str(e))
     # return success({"channels":experiment.channels})
     print(experiment.channels)
@@ -107,6 +106,7 @@ def getdata():
         arr=(arr-experiment.means)/experiment.sigmas
         # print(arr.tolist())
     except Exception as e:
+        print("ss")
         traceback.print_exc()
         return fail(str(e))
     #print("返回数据维度：", np.array(arr).shape)
@@ -209,8 +209,9 @@ def bciReady(filename='config.ini'):
     high=float(cur['high'])
     channels=cur['channels'].split(',')
     idxs=experiment.set_channel(channels)
+
     mfilter=BciFilter(low,high,sampleRateFrom,sampleRateTo,idxs)
-    #experiment.set_filter(mfilter)
+    experiment.set_filter(mfilter)
     print("滤波-通道选择器初始化成功")
     
     module=importlib.import_module(conf['model']['path'])
@@ -229,8 +230,8 @@ def bciReady(filename='config.ini'):
     ch_nums=experiment.device_channels
     tcp.create_batch(ch_nums)
     experiment.set_dataIn(tcp)
-    experiment.start_tcp() #start To SaveData
-    time.sleep(3)
+    experiment.start_tcp()  #start To SaveData
+    time.sleep(3)   #先接一部分数据
     print("脑电数据接入成功")
 '''准备REID接口'''
 # def reIDReady(filename='config.ini'):

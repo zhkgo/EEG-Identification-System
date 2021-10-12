@@ -24,7 +24,7 @@
 <body>
     <div id="app">
     <el-row style="margin-top: 5px;">
-        <el-col :span="16"><img src="./images/HDUBCI.jpg" height="150px"/></el-col>
+        <el-col :span="16"><img src="./images/HDUBCI.jpg" height="120px"/></el-col>
         <el-col :span="6"><div style='line-height:height; color: #409eff; text-align: right; font-size: 50px; font-family: font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif;'><i class="el-icon-location-information"></i>脑纹识别系统</div></el-col>
         <audio id="tishiyin" src="./sounds/tishi.wav" preload="auto"></audio>
     </el-row>
@@ -46,9 +46,13 @@
                 <el-tag id="timeCount">00:00</el-tag>
         </el-col>
     </el-row>
-
-    <el-row><div id="bcicontainer" style="margin-top:20 px; height: 760px"></div></el-row>
-    <el-row id="rsvpblock" style="margin-top:20px;margin-left: 50px;">
+    <el-row style="text-align: center;display:none; ">
+        <video id="videoplayed" src="videos/Huangshan1.mkv"   width="80%"  controls="controls">
+                your browser does not support the video tag
+        </video>
+    </el-row>
+    <el-row><div id="bcicontainer" style="margin-top:20px; height: 760px"></div></el-row>
+    <el-row id="rsvpblock" style="margin-top:20px;display:none; margin-left: 50px;">
         <el-col style="text-align:center" :span="3">
             <h2>请注意以下目标</h2>
             <el-card class="box-card">
@@ -86,6 +90,7 @@ var app=new Vue({
         cursession:0,
         curtrial:0,
         hiddenTime: "hidden",
+        videolinks: ["Huangshan1.mkv","Huangshan2.mkv","Lijiang1.mkv","Suzhou1.mkv","Suzhou2.mkv"],
     },
     methods:{
         toLoading(message){
@@ -220,6 +225,8 @@ var app=new Vue({
                     app.recordInteval=setInterval(()=>{
                         app.showRecordTime();
                     },1000)
+                    clearInterval(this.dataInterval);
+                    app.pretrain();
                 }
                 loading.close();
             })
@@ -228,6 +235,7 @@ var app=new Vue({
                 loading.close();
             });
             app.active++;
+
         },
 		inputBox(){
 		    this.$prompt('', '脑纹所属人姓名', {
@@ -327,7 +335,6 @@ var app=new Vue({
             });
         },
         countdown(){
-            document.getElementById("rsvpblock").hidden=false;
             document.getElementById("rimg").hidden=true;
             $('#countdown-container').ClassyCountdown({
                 theme: "black-wide", // theme
@@ -359,12 +366,13 @@ var app=new Vue({
             
         },
         pretrain(){
-            document.getElementById("bcicontainer").hidden=true;
+            document.getElementById("bcicontainer").style.display="none";
+            document.getElementById("rsvpblock").style.display="block";
+            console.log('rsvp start')
             this.countdown();
         },
         initEcharts(){
             let dom = document.getElementById("bcicontainer");
-            document.getElementById("rsvpblock").hidden=true;
             document.getElementById("bcicontainer").hidden=false;
             this.myChart = echarts.init(dom);
             let option;
