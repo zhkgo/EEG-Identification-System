@@ -52,7 +52,7 @@
         </video>
     </el-row>
     <el-row><div id="bcicontainer" style="margin-top:20px; height: 760px"></div></el-row>
-    <el-row id="rsvpblock" style="margin-top:20px; margin-left: 50px;">
+    <el-row id="rsvpblock" style="margin-top:20px; margin-left: 50px;"  v-show="rsvpshow">
         <el-col style="text-align:center" :span="3">
             <h2>请注意以下目标</h2>
             <el-card class="box-card">
@@ -83,12 +83,14 @@ var app=new Vue({
         imageList:blockimages,
         timgs:timgs,
         showimg:blockimages[0][0],
+        rsvpshow:false,
         timg:timgs[0],
-        present:500,
+        present:400,
         trials:200,
         sessions:5,
         cursession:0,
         curtrial:0,
+        running: true,
         hiddenTime: "hidden",
         videolinks: ["Huangshan1.mkv","Huangshan2.mkv","Lijiang1.mkv","Suzhou1.mkv","Suzhou2.mkv"],
     },
@@ -161,6 +163,13 @@ var app=new Vue({
             var eps=Date.now()-this.present*this.curtrial-this.firstshow;
             this.curtrial++;
             // this.lastshow=Date.now();
+            if(app.running==false){
+                app.curtrial=0;
+                app.rsvpshow=false;
+                app.cursession=0;
+                app.running=true;
+                return;
+            }
             if(eps>20){
                 setTimeout("app.shiftTrial()", this.present-eps);
             }else{
@@ -169,6 +178,7 @@ var app=new Vue({
         },
         doRSVP(){
             this.timg=this.timgs[this.cursession];
+            app.rsvpshow=true;
             this.firstshow=Date.now();
             this.shiftTrial();
             // this.clearInterval=setInterval(app.shiftTrial,this.present);
@@ -269,6 +279,7 @@ var app=new Vue({
                     app.$message.error(data.data);
                 else{
                     app.$message.success("保存脑纹数据成功");
+                    app.running=false;
                     clearInterval(app.recordInteval);
                     document.getElementById("timeCount").innerHTML="00:00";
                 }

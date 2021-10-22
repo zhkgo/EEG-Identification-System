@@ -11,7 +11,7 @@ from brainflow.data_filter import DataFilter, FilterTypes, AggOperations
 
 
 class CytonDevice:
-    def __init__(self, serial_port="COM6 ", time_length=0.04, port="",host="",name="", sr=250, borad_id=0):
+    def __init__(self, serial_port="COM6", time_length=0.04, port="",host="",name="", sr=250, borad_id=0):
         # board_id: 选取pcb类型，0是8通cyton, 1是16通cyton
         self.params = BrainFlowInputParams()
         self.params.ip_port = 0
