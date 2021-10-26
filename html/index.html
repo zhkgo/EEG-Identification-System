@@ -42,7 +42,7 @@
                 <el-button @click="reviseBaseline()" type="success" size="small" round>修正脑电基线</el-button>
 				<el-button @click="startRecord()" type="primary" size="small"  round><i class="el-icon-cpu"></i>开始采集当前被试</el-button>
                 <el-button @click="inputBox()" type="info" size="small" round>停止采集</el-button>
-				<el-button @click="recognize()" type="info" size="small" round>识别当前被试</el-button>
+				<el-button @click="recognizeByRSVP()" type="info" size="small" round>识别当前被试</el-button>
                 <el-tag id="timeCount">00:00</el-tag>
         </el-col>
     </el-row>
@@ -51,7 +51,7 @@
                 your browser does not support the video tag
         </video>
     </el-row>
-    <el-row><div id="bcicontainer" style="margin-top:20px; height: 760px"></div></el-row>
+    <el-row><div id="bcicontainer" style="margin-top:20px; height: 580px"></div></el-row>
     <el-row id="rsvpblock" style="margin-top:20px; margin-left: 50px;"  v-show="rsvpshow">
         <el-col style="text-align:center" :span="3">
             <h2>请注意以下目标</h2>
@@ -83,7 +83,7 @@ var app=new Vue({
         imageList:blockimages,
         timgs:timgs,
         showimg:blockimages[0][0],
-        rsvpshow:false,
+        rsvpshow:true,
         timg:timgs[0],
         present:400,
         trials:200,
@@ -178,9 +178,9 @@ var app=new Vue({
         },
         doRSVP(){
             this.timg=this.timgs[this.cursession];
-            app.rsvpshow=true;
             this.firstshow=Date.now();
             this.shiftTrial();
+            // app.rsvpshow=true;
             // this.clearInterval=setInterval(app.shiftTrial,this.present);
         },
         connectToBCI(){
@@ -200,7 +200,7 @@ var app=new Vue({
                     app.reviseBaseline();
                     this.dataInterval=setInterval(()=>{
                         app.getdata();
-                    },250);
+                    },200);
                 }
                 loading.close();
             })
@@ -307,6 +307,11 @@ var app=new Vue({
                 loading.close();
             });
         },
+        recognizeByRSVP(){
+            app.$message.success({message:"开始识别当前脑纹",showClose:true});
+            app.pretrain();
+            clearInterval(this.dataInterval);
+        },
         getdata(){
             let aurl= this.baseurl + "/api/getdata";
             axios.get(aurl,{
@@ -314,16 +319,17 @@ var app=new Vue({
                     timeend: app.end,
                 }
             }).then(function(response){
-                data=response.data
-                if (data.code==1){
-                    console.log(data.data);
+                ndata=response.data
+                // console.log(ndata)
+                if (ndata.code==1){
+                    console.log(ndata.data);
                 }
                 else{
-                    data=data.data.data;
+                    data=ndata.data.data;
                     for (var i = 0; i < data[0].length; i++) {
                         for(var j = 0 ; j <app.channels.length; j++){
                             app.signals[j].shift()
-                            app.signals[j].push(data[j][i]+j*6);
+                            app.signals[j].push(data[j][i]*6+12*j);
                         }
                         app.end++;
                         if ((i+1)%30==0){
@@ -381,8 +387,9 @@ var app=new Vue({
         },
         pretrain(){
             document.getElementById("bcicontainer").style.display="none";
-            document.getElementById("rsvpblock").style.display="block";
+            // document.getElementById("rsvpblock").style.display="block";
             console.log('rsvp start')
+            app.rsvpshow=true;
             this.countdown();
         },
         initEcharts(){
@@ -395,9 +402,9 @@ var app=new Vue({
                 this.signals.push([]);
             }
             // data=[1,0,-1,1,2,6]
-            for (var i = 0; i < 500; i++) {
+            for (var i = 0; i < 1000; i++) {
                 for(var j = 0 ; j <this.channels.length; j++){
-                    this.signals[j].push(6*j);
+                    this.signals[j].push(j*6+0.5);
                 }
             }
             this.end=0;
@@ -412,7 +419,7 @@ var app=new Vue({
 		            show: false,
                     type: 'category',
                     min: 0,
-                    max:500,
+                    max:1000,
                     splitLine: {
                         show: false
                     }
@@ -420,11 +427,12 @@ var app=new Vue({
                 yAxis: {
                     show: true,
                     type: 'value',
-                    min: -6,
-                    max: this.channels.length*6+2,
-                    interval:6,
+                    min: -11,
+                    max: this.channels.length*12+1,
+                    interval:12,
                     axisLabel:{
                         formatter: function (value,index) {
+                            // console.log(value)
                             var texts = [];
                             if (index>=1)
                                 texts.push(app.channels[index-1]);

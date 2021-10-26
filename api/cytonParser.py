@@ -39,10 +39,17 @@ class CytonDevice:
 
     def create_batch(self,ch_names=["Fp1", "Fp2", "C3", "C4", "P7", "P8", "O1", "O2"], __=1):
         self.signals = np.zeros((len(ch_names), 3600000))
+        # self.loads=np.load("data/lgw20211025105343.npy")[1:9]
+        # print(self.loads)
         self.board.prepare_session()
         self.board.start_stream(1800 * 250, '')
 
     def parse_data(self):
+        # while True:
+        #     time.sleep(self.time_length)
+        #     self.signals[:,self.end:self.end+6]=self.loads[:,self.end:self.end+6]
+        #     self.end+=6
+            # print(self.end)
         # 舍弃一段数据
         _ = self.board.get_board_data()
         while True:
@@ -50,13 +57,12 @@ class CytonDevice:
                 # 得到指定长度的数据片
                 time.sleep(self.time_length)
                 data = self.board.get_board_data()
-                # print(data[1:9,:])
-                # span = data[22][-1]-data[22][0]
                 self.signals[:, self.end:self.end + data.shape[1]] = data[1:9,:]
                 self.end += data.shape[1]
             except Exception as e:
                 print(e)
                 break
+
 
     def get_batch(self, startPos, maxlength=200):
         if startPos <= -1:
@@ -81,10 +87,10 @@ class CytonDevice:
         self.board.release_session()
 
 
-if __name__ == "__main__":
-    cyton = CytonDevice()
-    cyton.create_batch()
-    cyton.parse_data()
+# if __name__ == "__main__":
+#     cyton = CytonDevice()
+#     cyton.create_batch()
+#     cyton.parse_data()
 
     # chns, sr, names = cyton.get_device_info()
     # print(chns, " ", sr, " ", names)

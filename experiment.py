@@ -128,8 +128,10 @@ class Experiment:
             else:
                 data,rend=self.tcps[tcpid].get_batch(self.startTimes[tcpid]+startpos if startpos> -1 else -1, maxlength=windows)
                 rend-=self.startTimes[tcpid]
+            # print(data)
             if self.filter:
                 data = self.filter.deal(data)
+            # print(data)
             return data,int(rend)
         totdata = []
         totrend = 100000000

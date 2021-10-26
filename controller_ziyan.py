@@ -9,7 +9,7 @@ from api.cytonParser import CytonDevice as BCI
 # from api.dsiParse import DSIDevice as BCI
 from api.reid import ReIDTCP
 import configparser
-from bcifilter import BciFilter
+from bcifilter import BciFilter,filterForshow
 from datatable import VideoDeepLink,Linker
 from flask import Flask,request
 from flask_socketio import SocketIO, emit
@@ -51,9 +51,18 @@ def getdata():
     try:
         timeend=int(request.args.get('timeend'))
         arr,rend=experiment.getData(timeend,zerobegin=True)
+        minnum,maxnum=None,None
+        if rend>1000:
+            arr2,rend2=experiment.getData(rend-1000,windows=1000,zerobegin=True)
+            arr2=filterForshow(arr2,250)
+            minnum=np.min(arr2,axis=1).reshape(-1,1)
+            maxnum=np.max(arr2,axis=1).reshape(-1,1)
+            arr=arr2[:,timeend-rend:]
+            arr = (arr - minnum) / (maxnum - minnum)
         # arr=(arr-experiment.means)/experiment.sigmas
-        arr=(arr-experiment.minnum)/(experiment.maxnum-experiment.minnum)
-        # print(arr.tolist())
+        # arr = (arr - np.max(arr,axis=1).reshape(-1,1)) / (np.max(arr,axis=1).reshape(-1,1)- np.min(arr,axis=1).reshape(-1,1))
+        arr[np.isinf(arr)]=0
+        # print(np.sum(arr<0))
     except Exception as e:
         print("ss")
         traceback.print_exc()
@@ -106,7 +115,7 @@ def startJudge():
             rr.append(experiment.predictOnce())
             print(subjects[rr[-1]],end=' ')
             time.sleep(0.05)
-        print("")
+        # print("")
         res=subjects[max(rr,key=rr.count)] #小数据范围有效
     except Exception as e:
         traceback.print_exc()
